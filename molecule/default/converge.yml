@@ -1,0 +1,33 @@
+---
+- name: Converge
+  hosts: all
+  vars:
+    user_max_days: 365
+    user_min_days: 7
+    user_inactive_days: 30
+    user_warn_age: 7
+    user_umask: '027'
+    user_shell_timeout: 900
+    user_fix_existing_accounts: yes
+    root_password: mypass
+    user_account_add:
+      - name: example
+        comment: This is an example
+        uid: 1076
+        groups: ['admin']
+        shell: /bin/bash
+        password: encpwd
+    user_account_remove:
+      - removeme
+    user_group_add:
+      - name: admin
+        gid: 760
+    user_group_remove:
+      - mygroup
+    user_alias:
+      - user: example
+        alias: myls
+        command: ls -l --color=auto
+        state: present
+  roles:
+    - guidugli.user

@@ -1,0 +1,29 @@
+---
+dependencies: []
+
+galaxy_info:
+  role_name: user
+  author: guidugli
+  description: Add/Remove users; define and check security settings
+  company: Creuzo Tech
+  license: "license (BSD, MIT)"
+  min_ansible_version: 2.9
+
+  platforms:
+    - name: EL
+      versions:
+        - 8
+        - 7
+    - name: Fedora
+      versions:
+        - 34
+    - name: Ubuntu
+      versions:
+        - focal
+        - bionic
+    - name: Debian
+      versions:
+        - bullseye
+        - buster
+
+  galaxy_tags: ['user', 'group', 'management', 'add', 'remove']

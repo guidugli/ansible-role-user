@@ -1,0 +1,81 @@
+---
+# tasks file for user
+
+- name: Setting up login definitions
+  block:
+    - name: Setting up /etc/login.defs
+      lineinfile:
+        path: /etc/login.defs
+        regexp: '^\s*{{ item.name }}\s'
+        line: "{{ item.name }}  {{ item.value }}"
+        state: present
+      loop:
+        - { name: 'PASS_MAX_DAYS', value: "{{ user_max_days }}" }
+        - { name: 'PASS_MIN_DAYS', value: "{{ user_min_days }}" }
+        - { name: 'PASS_WARN_AGE', value: "{{ user_warn_age }}" }
+
+    - name: Setting up optional umask
+      lineinfile:
+        path: /etc/login.defs
+        regexp: '^\s*UMASK\s'
+        line: "UMASK  {{ user_umask }}"
+        state: present
+      when: user_umask is defined
+
+
+    # We need to do this the hard way because the user module that calls /usr/sbin/useradd does not support
+    # setting inactive days
+    # The defaults perms are 0644 on the file, but after useradd is run against it, it changes to 0600,
+    # so we'll change it as well
+    - name: "New users will have inactive parameter set as {{ user_inactive_days }} days after password expiration"
+      lineinfile:
+        path: /etc/default/useradd
+        regexp: '^\s*INACTIVE\s*='
+        line: "INACTIVE={{ user_inactive_days }}"
+        state: present
+        owner: root
+        group: root
+        mode: 0600
+  tags:
+    - set_login_defs
+
+##############################################
+#### DEFAULT PROFILES
+
+- name: Ensure default shell timeout is {{ user_shell_timeout }}
+  blockinfile:
+    path: "/etc/profile.d/shell_timeout.sh"
+    mode: '0644'
+    block: |
+
+      # User will be disconnected after {{ user_shell_timeout }} of inactivity
+      readonly TMOUT={{ user_shell_timeout }} ; export TMOUT
+
+    marker: "# {mark} Ansible Managed block"
+    create: yes
+
+# Theoretically setting umask on bashrc and profile are all that is needed
+# but this is a safeguard in case next task fails to setup umask for some reason.
+- name: Ensure default umask is {{ user_umask }}
+  blockinfile:
+    path: "/etc/profile.d/umask.sh"
+    mode: '0644'
+    block: |
+
+      # Default umask
+      umask {{ user_umask }}
+
+    marker: "# {mark} Ansible Managed block"
+    create: yes
+  when: user_umask is defined
+
+- name: Ensure umask is set
+  replace:
+    path: "{{ item }}"
+    regexp: '^(\s*umask)\s+\d+'
+    replace: '\1 {{ user_umask }}'
+    backup: yes
+  loop:
+    - /etc/profile
+    - "{{ user_bash_rc_file }}"
+  when: user_umask is defined

@@ -1,0 +1,66 @@
+---
+# defaults file for user settings
+
+# If the password of the user running ansible changes
+# this variable needs to have the new password, so
+# ansible_become_pass and ansible_ssh_pass can be updated
+# Store the password on another file and encrypt it with vault.
+#user_new_password: "{{ vault_admin_password }}"
+
+# indicates if single user mode is to be configured
+# (needs to have root password set)
+user_configure_single_user: no
+
+## Password settings ##
+
+# Number of days before password expire
+user_max_days: 365
+
+# Number of days until user is allowed to change password
+user_min_days: 7
+
+# Number of days before user is considered inactive
+user_inactive_days: 30
+
+# Number of days before password expire that will
+# generate a warning to the user
+user_warn_age: 7
+
+# UMASK to be used by all users
+#user_umask: '027'
+
+# Shell timeout in seconds
+user_shell_timeout: 900
+
+# Should tasks be executed to fix existing user accounts?
+user_fix_existing_accounts: yes
+
+## OPTIONAL VARIABLES ##
+
+#root_password: myencryptedpass
+
+#user_account_add:
+#  - name: example
+#    comment: This is an example
+#    uid: 1076
+#    groups: ['admin']
+#    shell: /bin/bash
+#    password: encpwd
+
+#user_account_remove:
+#  - removeme
+
+#user_group_add:
+#  - name: admin
+#    gid: 760
+
+#user_group_remove:
+#  - mygroup
+
+# Specify aliases to be created/removed from user's bashrc file
+# Command is not required when state is absent
+#user_alias:
+#  - user: example
+#    alias: ll
+#    command: ls -l --color=auto
+#    state: present

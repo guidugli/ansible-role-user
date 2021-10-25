@@ -1,0 +1,433 @@
+---
+# Run tasks to validate/fix existing users
+
+
+- name: get list of users that do not have the correct setting for inactive parameter
+  shell: |
+    set -o pipefail
+    grep -E ^[^:]+:[^\!*] /etc/shadow | cut -d: -f1,7 | grep -v :{{ user_inactive_days }} | cut -d: -f1
+  args:
+    executable: /bin/bash
+  register: inactive_users_info
+  changed_when: false
+  failed_when: inactive_users_info.stderr | length > 0
+
+- name: Fix inactive setting for users detected in last step
+  command: "chage --inactive {{ user_inactive_days }} {{ item }}"
+  register: user_cmd_result
+  failed_when: user_cmd_result.rc != 0
+  with_items: "{{ inactive_users_info.stdout_lines }}"
+  when:
+    - inactive_users_info.stdout_lines is defined
+    - inactive_users_info.stdout_lines | length > 0
+
+- name: Get all users with a password set date in the future
+  shell: |
+    set -o pipefail
+    for usr in $(cut -d: -f1 /etc/shadow)
+    do
+      [[ $(grep ^$usr /etc/shadow | cut -d: -f3) > $(($(date +%s) / 60 / 60 / 24)) ]] &&
+      echo "$usr :$(chage --list $usr | grep '^Last password change' | cut -d: -f2)"
+    done
+  register: user_cmd_result
+  failed_when: false
+  changed_when: false
+
+- name: At least one user needs to be manually fixed
+  debug:
+    msg:
+      - "At least one user has a password set with a future date."
+      - "Fix these users to prevent security exploitation:"
+      - "{{ user_cmd_result.stdout_lines }}"
+  when: user_cmd_result.stdout | length > 0
+  failed_when: true
+
+- name: Ensure system accounts have nologin shell
+  block:
+    - name: Get list of accounts to change login shell to nologin
+      shell: >
+        awk -F: '($1!="root" && $1!="sync" && $1!="shutdown" && $1!="halt" && $1!~/^\+/ &&
+        ($3<'"$(awk '/^\s*UID_MIN/{print $2}' /etc/login.defs)"' || $3==65534 ) &&
+        $7!="/sbin/nologin" && $7 != "/usr/sbin/nologin" && $7!="/bin/false") {print $1}' /etc/passwd
+      register: user_cmd_result
+      changed_when: false
+
+    - name: Changing account shell to /usr/sbin/nologin
+      user:
+        name: "{{ item }}"
+        shell: /usr/sbin/nologin
+      loop: "{{ user_cmd_result.stdout_lines }}"
+  tags:
+    - set_system_accounts_nologin_shell
+
+- name: Ensure system accounts are locked
+  block:
+    - name: Retrieve all system accounts that needs to be locked
+      shell: >
+        awk -F:
+         '($1!="root" && $1!~/^\+/ &&
+         ($3<'"$(awk '/^\s*UID_MIN/{print $2}' /etc/login.defs)"' || $3==65534)) {print $1}' /etc/passwd |
+         xargs -I '{}' passwd -S '{}' |
+         awk '($2!="L" && $2!="LK") {print $1}'
+      register: user_cmd_result
+      changed_when: false
+
+    - name: Lock system accounts
+      user:
+        name: "{{ item }}"
+        password_lock: yes
+      loop: "{{ user_cmd_result.stdout_lines }}"
+  tags:
+    - lock_system_accounts
+
+- name: Ensure default group for root is GID 0
+  command: '/usr/sbin/usermod -g 0 root'
+  register: user_cmd_result
+  changed_when: (user_cmd_result.stderr | length == 0) and (user_cmd_result.stdout | length == 0)
+  failed_when: user_cmd_result.rc != 0
+
+- name: Ensure password fields are not empty
+  command: "awk -F: '($2 == \"\" ) { print $1 }' /etc/shadow"
+  register: user_cmd_result
+  changed_when: false
+  failed_when: false
+
+- name: Lock users without a password
+  user:
+    name: "{{ item }}"
+    password_lock: yes
+  with_items: "{{ user_cmd_result.stdout_lines }}"
+
+# Should not be using NIS, so remove the plus sign if it exists
+- name: Ensure no legacy "+" entries exist in /etc/passwd
+  command: "grep '^\\+.*:' /etc/passwd"
+  register: user_cmd_result
+  changed_when: false
+  failed_when: false
+
+- name: List of users to have the + sign removed from /etc/passwd
+  debug:
+    msg:
+      - "Remove the following legacy entries from /etc/passwd: "
+      - "{{ user_cmd_result.stdout_lines }}"
+  failed_when: true
+  when: user_cmd_result.stdout
+
+# Should not be using NIS, so remove the plus sign if it exists
+- name: Ensure no legacy "+" entries exist in /etc/shadow
+  command: "grep '^\\+.*:' /etc/shadow"
+  register: user_cmd_result
+  changed_when: false
+  failed_when: false
+
+- name: List of users to have the + sign removed from /etc/shadow
+  debug:
+    msg:
+      - "Remove the following legacy entries from /etc/shadow: "
+      - "{{ user_cmd_result.stdout_lines }}"
+  failed_when: true
+  when: user_cmd_result.stdout
+
+# Should not be using NIS, so remove the plus sign if it exists
+- name: Ensure no legacy "+" entries exist in /etc/group
+  command: "grep '^\\+.*:' /etc/group"
+  register: user_cmd_result
+  changed_when: false
+  failed_when: false
+
+- name: List of users to have the + sign removed from /etc/group
+  debug:
+    msg:
+      - "Remove the following legacy entries from /etc/group: "
+      - "{{ user_cmd_result.stdout_lines }}"
+  failed_when: true
+  when: user_cmd_result.stdout
+
+# Check PATH environment variable from ROOT user
+- name: Ensure root PATH integrity
+  block:
+    - name: Run script on root PATH variable
+      script: files/path_check.sh
+      changed_when: false
+      failed_when: false
+      register: user_cmd_result
+
+    - name: Print report to user
+      debug:
+        msg:
+          - "Deviations found:"
+          - "{{ user_cmd_result.stdout_lines }}"
+      failed_when: user_cmd_result.rc != 0
+      changed_when: false
+  tags:
+    - check_root_path_integrity
+
+- name: Ensure all users home directories exist
+  block:
+    - name: Run script to check home dirs
+      script: files/check_homedir_exists.sh
+      changed_when: false
+      failed_when: false
+      register: user_cmd_result
+
+    - name: Print report to user
+      debug:
+        msg:
+          - "Deviations found:"
+          - " {{ user_cmd_result.stdout_lines }}"
+      failed_when: user_cmd_result.rc != 0
+      changed_when: false
+  tags:
+    - check_homedir_exists
+
+- name: Ensure users home dir permissions are 750 or more restrictive
+  block:
+    - name: Run script to check home directories
+      script: files/check_homedir.sh
+      changed_when: false
+      failed_when: false
+      register: user_cmd_result
+
+    - name: Print report to user
+      debug:
+        msg:
+          - "Deviations found:"
+          - " {{ user_cmd_result.stdout_lines }}"
+      failed_when: user_cmd_result.rc != 0
+      changed_when: false
+  tags:
+    - check_home_dir_perms
+
+- name: Ensure users own their home directories
+  block:
+    - name: Run script to check home directories
+      script: files/homedir_owner_check.sh
+      changed_when: false
+      failed_when: false
+      register: user_cmd_result
+
+    - name: Print report to user
+      debug:
+        msg:
+          - "Deviations found:"
+          - " {{ user_cmd_result.stdout_lines }}"
+      failed_when: user_cmd_result.rc != 0
+      changed_when: false
+  tags:
+    - check_home_dir_owner
+
+- name: Ensure users dot files are not group or world writeable
+  block:
+    - name: Run script to check users files
+      script: files/user_dot_file_check.sh
+      changed_when: false
+      failed_when: false
+      register: user_cmd_result
+
+    - name: Print report to user
+      debug:
+        msg:
+          - "Deviations found:"
+          - " {{ user_cmd_result.stdout_lines }}"
+      failed_when: user_cmd_result.rc != 0
+      changed_when: false
+  tags:
+    - check_users_dot_files
+
+- name: Ensure no users have .forward files
+  block:
+    - name: Run script to check users
+      script: files/check_forward_files.sh
+      changed_when: false
+      failed_when: false
+      register: user_cmd_result
+
+    - name: Print report to user
+      debug:
+        msg:
+          - "Deviations found:"
+          - " {{ user_cmd_result.stdout_lines }}"
+      failed_when: user_cmd_result.rc != 0
+      changed_when: false
+  tags:
+    - check_users_forward_files
+
+- name: Ensure no users have .netrc files
+  block:
+    - name: Run script to check users
+      script: files/check_netrc.sh
+      changed_when: false
+      failed_when: false
+      register: user_cmd_result
+
+    - name: Print report to user
+      debug:
+        msg:
+          - "Deviations found:"
+          - " {{ user_cmd_result.stdout_lines }}"
+      failed_when: user_cmd_result.rc != 0
+      changed_when: false
+  tags:
+    - check_netrc_files
+
+- name: Ensure users .netrc Files are not group or world accessible
+  block:
+    - name: Run script to check .netrc files
+      script: files/check_netrc_perms.sh
+      changed_when: false
+      failed_when: false
+      register: result
+
+    - name: Print report to user
+      debug:
+        msg:
+          - "Deviations found:"
+          - " {{ user_cmd_result.stdout_lines }}"
+      failed_when: user_cmd_result.rc != 0
+      changed_when: false
+  tags:
+    - check_netrc_files_perms
+
+- name: Ensure no users have .rhosts files
+  block:
+    - name: Run script to find .rhosts files
+      script: files/find_rhosts.sh
+      changed_when: false
+      failed_when: false
+      register: result
+
+    - name: Print report to user
+      debug:
+        msg:
+          - "Deviations found:"
+          - " {{ user_cmd_result.stdout_lines }}"
+      failed_when: user_cmd_result.rc != 0
+      changed_when: false
+  tags:
+    - check_find_rhosts
+
+- name: Ensure all groups in /etc/passwd exist in /etc/group
+  block:
+    - name: Run script to check groups
+      script: files/check_groups.sh
+      changed_when: false
+      failed_when: false
+      register: user_cmd_result
+
+    - name: Print report to user
+      debug:
+        msg:
+          - "Deviations found:"
+          - " {{ user_cmd_result.stdout_lines }}"
+      failed_when: user_cmd_result.rc != 0
+      changed_when: false
+  tags:
+    - check_groups
+
+- name: Ensure no duplicate UIDs exist
+  block:
+    - name: Run script to check UIDs
+      script: files/check_dup_uid.sh
+      changed_when: false
+      failed_when: false
+      register: user_cmd_result
+
+    - name: Print report to user
+      debug:
+        msg:
+          - "Deviations found:"
+          - " {{ user_cmd_result.stdout_lines }}"
+      failed_when: user_cmd_result.rc != 0
+      changed_when: false
+  tags:
+    - check_duplicated_uid
+
+- name: Ensure no duplicate GIDs exist
+  block:
+    - name: Run script to check GIDs
+      script: files/check_dup_gid.sh
+      changed_when: false
+      failed_when: false
+      register: user_cmd_result
+
+    - name: Print report to user
+      debug:
+        msg:
+          - "Deviations found:"
+          - " {{ user_cmd_result.stdout_lines }}"
+      failed_when: user_cmd_result.rc != 0
+      changed_when: false
+  tags:
+    - check_duplicated_gid
+
+- name: Ensure no duplicate user names exist
+  block:
+    - name: Run script to check user names
+      script: files/check_dup_user_names.sh
+      changed_when: false
+      failed_when: false
+      register: user_cmd_result
+
+    - name: Print report to user
+      debug:
+        msg:
+          - "Deviations found:"
+          - " {{ user_cmd_result.stdout_lines }}"
+      failed_when: user_cmd_result.rc != 0
+      changed_when: false
+  tags:
+    - check_duplicated_user_name
+
+- name: Ensure no duplicate group names exist
+  block:
+    - name: Run script to check group names
+      script: files/check_dup_group_names.sh
+      changed_when: false
+      failed_when: false
+      register: result
+
+    - name: Print report to user
+      debug:
+        msg:
+          - "Deviations found:"
+          - " {{ user_cmd_result.stdout_lines }}"
+      failed_when: user_cmd_result.rc != 0
+      changed_when: false
+  tags:
+    - check_duplicated_user_name
+
+- name: Report on shadow group in /etc/group
+  block:
+    - name: Determine if the shadow group exists in /etc/group
+      command: /usr/bin/grep "^shadow:" /etc/group
+      register: user_cmd_result
+      changed_when: false
+      failed_when: user_cmd_result.rc == "2"
+
+    - name: Print report of shadow group to user
+      debug:
+        msg: "Shadow group exists in /etc/group. Remove"
+      changed_when: false
+      failed_when: false
+      when: user_cmd_result.stdout | length > 0
+  tags:
+    - check_shadow_group
+
+- name: Ensure only root have UID of 0
+  block:
+    - name: Find accounts with UID of 0 (except root)
+      shell: "awk -F: '($3 == 0 && ($1!=\"root\")) { print $1 }' /etc/passwd"
+      register: user_cmd_result
+      changed_when: false
+      failed_when: user_cmd_result.rc != 0
+
+    - name: Report list of accounts with UID of 0 (except root)
+      debug:
+        msg:
+          - "Remove the following accounts or change UID:"
+          - "{{ user_cmd_result.stdout_lines }}"
+      changed_when: false
+      failed_when: true
+      when: user_cmd_result.stdout | length > 0
+  tags:
+    - check_uid_zero

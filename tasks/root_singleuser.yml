@@ -1,0 +1,36 @@
+---
+
+- name: Set root password
+  user:
+    name: root
+    password: "{{ root_password }}"
+  when: root_password is defined
+
+- name: Check if root has a password
+  lineinfile:
+    path: /etc/shadow
+    regexp: '^root:[*\!|*\*]*:'
+    state: absent
+  check_mode: yes
+  changed_when: false
+  register: root_pw_check
+  failed_when: false
+
+- name: Set single user to use use a secure shell
+  lineinfile:
+    path: /usr/lib/systemd/system/{{ item }}.service
+    regexp: '^ExecStart=-'
+    line: "ExecStart=-/usr/lib/systemd/systemd-sulogin-shell {{ item }}"
+    create: no
+  when: root_pw_check.found != "0"
+  with_items:
+    - rescue
+    - emergency
+
+- name: If no root password is set up, notify the user and do not set password or single user mode
+  debug:
+    msg: >
+      Root password is not set and no password provided. Set root_password variable per instructions
+      and restart playbook.
+  failed_when: true
+  when: root_pw_check.found and root_password is not defined

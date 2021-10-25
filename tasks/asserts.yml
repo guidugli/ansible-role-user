@@ -1,0 +1,105 @@
+---
+
+- name: Validate numeric variables are correctly set
+  assert:
+    that:
+      - vars[item] is defined
+      - vars[item] | int(-1) > -1
+    quiet: yes
+  loop:
+    - user_max_days
+    - user_min_days
+    - user_inactive_days
+    - user_warn_age
+    - user_shell_timeout
+  loop_control:
+    label: "{{ item }}: {{ vars[item] | default('undefined') }}"
+
+- name: Validate optional umask setting
+  assert:
+    that:
+      - user_umask | int > 0
+      - user_umask is regex('^[0-7]{3,4}$')
+    quiet: yes
+  when: user_umask is defined
+
+- name: Validate user_fix_existing_accounts value
+  assert:
+    that:
+      - user_fix_existing_accounts is defined
+      - user_fix_existing_accounts | type_debug == 'bool'
+    quiet: yes
+
+- name: Validate user_configure_single_user value
+  assert:
+    that:
+      - user_configure_single_user is defined
+      - user_configure_single_user | type_debug == 'bool'
+    quiet: yes
+
+
+- name: Validate user_account_add information
+  vars:
+    pathre: '^(?:[\/])$|^(?:[\/][a-zA-Z0-9_.-]+)+[\/]?$'
+  assert:
+    that:
+      - item.name is defined
+      - item.name is string
+      - item.name | length > 0
+      - item.uid is not defined or (item.uid | int > 0)
+      - item.shell is not defined or item.shell is regex(pathre)
+      - item.password is not defined or item.password is string
+      - item.password is not defined or item.password | length > 0
+    quiet: yes
+  loop: "{{ user_account_add }}"
+  loop_control:
+    label: "{{ item.name | default('undefined') }}"
+  when: user_account_add is defined
+
+- name: Validate user_group_add information
+  assert:
+    that:
+      - item.name is defined
+      - item.name is string
+      - item.name | length > 0
+      - item.gid is not defined or (item.gid | int > 0)
+    quiet: yes
+  loop: "{{ user_group_add }}"
+  loop_control:
+    label: "{{ item.name | default('undefined') }}"
+  when: user_group_add is defined
+
+- name: Validate users and groups to be removed
+  assert:
+    that:
+      - item is defined
+      - item is string
+      - item | length > 0
+    quiet: yes
+  loop: "{{ (user_account_remove | default([], true)) +  (user_group_remove | default([], true)) }}"
+  when: user_account_remove is defined or user_group_remove is defined
+
+- name: Validade user_alias list
+  assert:
+    that:
+      - user_alias is iterable
+    quiet: yes
+  when: user_alias is defined
+
+- name: Validade user_alias list items
+  assert:
+    that:
+      - item.user is defined
+      - item.user is string
+      - item.user | length > 0
+      - item.alias is defined
+      - item.alias is string
+      - item.alias | length > 0
+      - item.state is defined
+      - item.state is string
+      - item.state in ['present', 'absent']
+      - (item.command is defined) or (item.state == 'absent')
+      - (item.command is not defined) or item.command is string
+      - (item.command is not defined) or item.command | length > 0
+    quiet: yes
+  loop: "{{ user_alias | default([], true) }}"

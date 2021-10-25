@@ -1,0 +1,75 @@
+---
+# vars file for user
+
+_user_bash_rc_file:
+  default: /etc/bashrc
+  Debian: /etc/bash.bashrc
+  Ubuntu: /etc/bash.bashrc
+
+user_bash_rc_file: "{{ _user_bash_rc_file[ansible_distribution ~ '-' ~ ansible_distribution_major_version] |
+                   default(_user_bash_rc_file[ansible_distribution]) | default(_user_bash_rc_file['default']) }}"
+
+# Permissions to set on critical system files
+user_critical_files_perms:
+  RedHat:
+    - name: /etc/passwd
+      mode: '0644'
+      owner: root
+      group: root
+    - name: /etc/passwd-
+      mode: '0644'
+      owner: root
+      group: root
+    - name: /etc/group
+      mode: '0644'
+      owner: root
+      group: root
+    - name: /etc/group-
+      mode: '0644'
+      owner: root
+      group: root
+    - name: /etc/shadow
+      mode: '0000'
+      owner: root
+      group: root
+    - name: /etc/gshadow
+      mode: '0000'
+      owner: root
+      group: root
+    - name: /etc/shadow-
+      mode: '0000'
+      owner: root
+      group: root
+    - name: /etc/gshadow-
+      mode: '0000'
+      owner: root
+      group: root
+  Debian:
+    - name: /etc/passwd
+      mode: '0644'
+      owner: root
+      group: root
+    - name: /etc/passwd-
+      mode: '0644'
+      owner: root
+      group: root
+    - name: /etc/group
+      mode: '0644'
+      owner: root
+      group: root
+    - name: /etc/group-
+      mode: '0644'
+      owner: root
+      group: root
+    - name: /etc/shadow
+      mode: '0640'
+      owner: root
+      group: shadow
+    - name: /etc/gshadow
+      mode: '0640'
+      owner: root
+      group: shadow
+    - name: /etc/shadow-
+      mode: '0640'
+      owner: root
+      group: shadow
