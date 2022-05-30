@@ -3,20 +3,20 @@
 
 # Check input variables
 - name: Check input variables (include asserts.yml)
-  include_tasks: asserts.yml
+  ansible.builtin.include_tasks: asserts.yml
 
 - name: Setting up login definitions (include set_login_defs.yml)
-  include_tasks: set_login_defs.yml
+  ansible.builtin.include_tasks: set_login_defs.yml
 
 - name: Ensure critical user/group management file have correct permissions (include file_permissions.yml)
-  include_tasks: file_permissions.yml
+  ansible.builtin.include_tasks: file_permissions.yml
 
 - name: Ensure root password is set and single user mode is configured correctly (include root_singleuser.yml)
-  include_tasks: root_singleuser.yml
+  ansible.builtin.include_tasks: root_singleuser.yml
   when: user_configure_single_user
 
 - name: Manage users and groups (include user_group_management.yml)
-  include_tasks: user_group_management.yml
+  ansible.builtin.include_tasks: user_group_management.yml
 
 - name: Search/Fix/Report users with invalid settings
-  include_tasks: fix_users.yml
+  ansible.builtin.include_tasks: fix_users.yml

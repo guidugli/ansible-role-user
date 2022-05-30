@@ -1,7 +1,7 @@
 ---
 
 - name: Ensure correct permission on critical system files
-  file:
+  ansible.builtin.file:
     path: "{{ item.name }}"
     owner: "{{ item.owner }}"
     group: "{{ item.group }}"

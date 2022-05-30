@@ -1,13 +1,13 @@
 ---
 
 - name: Set root password
-  user:
+  ansible.builtin.user:
     name: root
     password: "{{ root_password }}"
   when: root_password is defined
 
 - name: Check if root has a password
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/shadow
     regexp: '^root:[*\!|*\*]*:'
     state: absent
@@ -17,7 +17,7 @@
   failed_when: false
 
 - name: Set single user to use use a secure shell
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /usr/lib/systemd/system/{{ item }}.service
     regexp: '^ExecStart=-'
     line: "ExecStart=-/usr/lib/systemd/systemd-sulogin-shell {{ item }}"
@@ -28,7 +28,7 @@
     - emergency
 
 - name: If no root password is set up, notify the user and do not set password or single user mode
-  debug:
+  ansible.builtin.debug:
     msg: >
       Root password is not set and no password provided. Set root_password variable per instructions
       and restart playbook.

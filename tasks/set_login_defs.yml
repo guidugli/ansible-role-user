@@ -4,7 +4,7 @@
 - name: Setting up login definitions
   block:
     - name: Setting up /etc/login.defs
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: /etc/login.defs
         regexp: '^\s*{{ item.name }}\s'
         line: "{{ item.name }}  {{ item.value }}"
@@ -15,7 +15,7 @@
         - { name: 'PASS_WARN_AGE', value: "{{ user_warn_age }}" }
 
     - name: Setting up optional umask
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: /etc/login.defs
         regexp: '^\s*UMASK\s'
         line: "UMASK  {{ user_umask }}"
@@ -28,7 +28,7 @@
     # The defaults perms are 0644 on the file, but after useradd is run against it, it changes to 0600,
     # so we'll change it as well
     - name: "New users will have inactive parameter set as {{ user_inactive_days }} days after password expiration"
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: /etc/default/useradd
         regexp: '^\s*INACTIVE\s*='
         line: "INACTIVE={{ user_inactive_days }}"
@@ -43,7 +43,7 @@
 #### DEFAULT PROFILES
 
 - name: Ensure default shell timeout is {{ user_shell_timeout }}
-  blockinfile:
+  ansible.builtin.blockinfile:
     path: "/etc/profile.d/shell_timeout.sh"
     mode: '0644'
     block: |
@@ -57,7 +57,7 @@
 # Theoretically setting umask on bashrc and profile are all that is needed
 # but this is a safeguard in case next task fails to setup umask for some reason.
 - name: Ensure default umask is {{ user_umask }}
-  blockinfile:
+  ansible.builtin.blockinfile:
     path: "/etc/profile.d/umask.sh"
     mode: '0644'
     block: |
@@ -70,7 +70,7 @@
   when: user_umask is defined
 
 - name: Ensure umask is set
-  replace:
+  ansible.builtin.replace:
     path: "{{ item }}"
     regexp: '^(\s*umask)\s+\d+'
     replace: '\1 {{ user_umask }}'

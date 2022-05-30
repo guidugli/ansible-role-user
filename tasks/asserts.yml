@@ -1,7 +1,7 @@
 ---
 
 - name: Validate numeric variables are correctly set
-  assert:
+  ansible.builtin.assert:
     that:
       - vars[item] is defined
       - vars[item] | int(-1) > -1
@@ -16,7 +16,7 @@
     label: "{{ item }}: {{ vars[item] | default('undefined') }}"
 
 - name: Validate optional umask setting
-  assert:
+  ansible.builtin.assert:
     that:
       - user_umask | int > 0
       - user_umask is regex('^[0-7]{3,4}$')
@@ -24,14 +24,14 @@
   when: user_umask is defined
 
 - name: Validate user_fix_existing_accounts value
-  assert:
+  ansible.builtin.assert:
     that:
       - user_fix_existing_accounts is defined
       - user_fix_existing_accounts | type_debug == 'bool'
     quiet: yes
 
 - name: Validate user_configure_single_user value
-  assert:
+  ansible.builtin.assert:
     that:
       - user_configure_single_user is defined
       - user_configure_single_user | type_debug == 'bool'
@@ -41,7 +41,7 @@
 - name: Validate user_account_add information
   vars:
     pathre: '^(?:[\/])$|^(?:[\/][a-zA-Z0-9_.-]+)+[\/]?$'
-  assert:
+  ansible.builtin.assert:
     that:
       - item.name is defined
       - item.name is string
@@ -57,7 +57,7 @@
   when: user_account_add is defined
 
 - name: Validate user_group_add information
-  assert:
+  ansible.builtin.assert:
     that:
       - item.name is defined
       - item.name is string
@@ -70,7 +70,7 @@
   when: user_group_add is defined
 
 - name: Validate users and groups to be removed
-  assert:
+  ansible.builtin.assert:
     that:
       - item is defined
       - item is string
@@ -80,14 +80,14 @@
   when: user_account_remove is defined or user_group_remove is defined
 
 - name: Validade user_alias list
-  assert:
+  ansible.builtin.assert:
     that:
       - user_alias is iterable
     quiet: yes
   when: user_alias is defined
 
 - name: Validade user_alias list items
-  assert:
+  ansible.builtin.assert:
     that:
       - item.user is defined
       - item.user is string

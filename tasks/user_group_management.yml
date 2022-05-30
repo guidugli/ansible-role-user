@@ -2,7 +2,7 @@
 
 # Loop through provided list and ensure group is in the system, with correct attributes
 - name: Ensure specified groups exist with correct attributes
-  group:
+  ansible.builtin.group:
     name: "{{ item.name }}"
     gid: "{{ item.gid | default(omit) }}"
     state: present
@@ -13,7 +13,7 @@
 
 # Loop through provided list and ensure user is not present in the system
 - name: Ensure specified groups do not exist in the system
-  group:
+  ansible.builtin.group:
     name: "{{ item }}"
     state: absent
   loop: "{{ user_group_remove | default([], true) }}"
@@ -22,7 +22,7 @@
 
 # Loop through provided list and ensure user is in the system, with correct attributes
 - name: Ensure specified user accounts exist with correct attributes
-  user:
+  ansible.builtin.user:
     name: "{{ item.name }}"
     comment: "{{ item.comment | default(omit, true) }}"
     uid: "{{ item.uid | default(omit, true) }}"
@@ -41,7 +41,7 @@
 
 # Update current
 - name: Update
-  set_fact:
+  ansible.builtin.set_fact:
     ansible_become_pass: "{{ user_new_password }}"
     #ansible_ssh_pass: "{{ user_new_password }}"
   when:
@@ -50,7 +50,7 @@
 
 # Loop through provided list and ensure user is not present in the system
 - name: Ensure specified user accounts do not exist in the system
-  user:
+  ansible.builtin.user:
     name: "{{ item }}"
     state: absent
     remove: yes
@@ -61,7 +61,7 @@
 - name: Add/Remove aliases from user's .bashrc
   vars:
     homepath: "{{ '/root/.bashrc' if item.user == 'root' else '/home/' + item.user + '/.bashrc' }}"
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ homepath }}"
     regex: '^alias\s+{{ item.alias }}='
     line: "alias {{ item.alias }}='{{ item.command }}'"
