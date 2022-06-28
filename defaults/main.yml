@@ -37,6 +37,40 @@ user_fix_existing_accounts: yes
 
 ## OPTIONAL VARIABLES ##
 
+# If set to MD5, MD5-based algorithm will be used for encrypting password
+# If set to SHA256, SHA256-based algorithm will be used for encrypting password
+# If set to SHA512, SHA512-based algorithm will be used for encrypting password
+# If set to BCRYPT, BCRYPT-based algorithm will be used for encrypting password
+# If set to YESCRYPT, YESCRYPT-based algorithm will be used for encrypting password
+# If set to DES, DES-based algorithm will be used for encrypting password 
+#user_encrypt_method: "SHA512"
+
+# Only works if ENCRYPT_METHOD is set to SHA256 or SHA512.
+#
+# Define the number of SHA rounds.
+# With a lot of rounds, it is more difficult to brute-force the password.
+# However, more CPU resources will be needed to authenticate users if
+# this value is increased.
+#user_sha_crypt_max_rounds: 5000
+
+# Only works if ENCRYPT_METHOD is set to BCRYPT.
+#
+# Define the number of BCRYPT rounds.
+# With a lot of rounds, it is more difficult to brute-force the password.
+# However, more CPU resources will be needed to authenticate users if
+# this value is increased.
+#user_bcrypt_min_rounds: 13
+#user_bcrypt_max_rounds: 31
+
+# Only works if ENCRYPT_METHOD is set to YESCRYPT.
+#
+# Define the YESCRYPT cost factor.
+# With a higher cost factor, it is more difficult to brute-force the password.
+# However, more CPU time and more memory will be needed to authenticate users
+# if this value is increased.
+#user_yescrypt_cost_factor: 5
+
+
 #root_password: myencryptedpass
 
 #user_account_add:
