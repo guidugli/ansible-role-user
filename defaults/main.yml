@@ -42,7 +42,7 @@ user_fix_existing_accounts: yes
 # If set to SHA512, SHA512-based algorithm will be used for encrypting password
 # If set to BCRYPT, BCRYPT-based algorithm will be used for encrypting password
 # If set to YESCRYPT, YESCRYPT-based algorithm will be used for encrypting password
-# If set to DES, DES-based algorithm will be used for encrypting password 
+# If set to DES, DES-based algorithm will be used for encrypting password
 #user_encrypt_method: "SHA512"
 
 # Only works if ENCRYPT_METHOD is set to SHA256 or SHA512.
