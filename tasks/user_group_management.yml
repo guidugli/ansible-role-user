@@ -58,7 +58,7 @@
   when: user_account_remove is defined
 
 # Add/remove aliases from bashrc
-- name: Add/Remove aliases from user's .bashrc
+- name: Add/Remove aliases from user's .bashrc  # noqa: args[module]
   vars:
     homepath: "{{ '/root/.bashrc' if item.user == 'root' else '/home/' + item.user + '/.bashrc' }}"
   ansible.builtin.lineinfile:

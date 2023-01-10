@@ -76,7 +76,7 @@
       - item is string
       - item | length > 0
     quiet: yes
-  loop: "{{ (user_account_remove | default([], true)) +  (user_group_remove | default([], true)) }}"
+  loop: "{{ (user_account_remove | default([], true)) + (user_group_remove | default([], true)) }}"
   when: user_account_remove is defined or user_group_remove is defined
 
 - name: Validade user_alias list

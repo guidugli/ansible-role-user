@@ -2,7 +2,7 @@
 # Run tasks to validate/fix existing users
 
 
-- name: get list of users that do not have the correct setting for inactive parameter
+- name: Get list of users that do not have the correct setting for inactive parameter
   ansible.builtin.shell: |
     set -o pipefail
     grep -E ^[^:]+:[^\!*] /etc/shadow | cut -d: -f1,7 | grep -v :{{ user_inactive_days }} | cut -d: -f1
