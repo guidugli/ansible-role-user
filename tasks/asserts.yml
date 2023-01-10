@@ -103,3 +103,11 @@
       - (item.command is not defined) or item.command | length > 0
     quiet: yes
   loop: "{{ user_alias | default([], true) }}"
+
+- name: Validate password encryption method
+  ansible.builtin.assert:
+    that:
+      - user_encrypt_method is string
+      - user_encrypt_method | length > 0
+      - user_encrypt_method in ['YESCRYPT', 'SHA512', 'SHA256', 'BCRYPT', 'DES', 'MD5']
+    quiet: yes

@@ -1,7 +1,22 @@
 ---
 # tasks file for user
 
+- name: Ensure libuser is installed
+  ansible.builtin.package:
+    name: libuser
+    state: present
+    update_cache: yes
+
+- name: Set encryption method on libuser.conf file
+  ansible.builtin.lineinfile:
+    path: /etc/libuser.conf
+    regexp: '^\s*crypt_style\s'
+    line: "crypt_style = {{ user_encrypt_method }}"
+    state: present
+
 - name: Setting up login definitions
+  tags:
+    - set_login_defs
   block:
     - name: Setting up /etc/login.defs
       ansible.builtin.lineinfile:
@@ -13,7 +28,7 @@
         - { name: 'PASS_MAX_DAYS', value: "{{ user_max_days }}" }
         - { name: 'PASS_MIN_DAYS', value: "{{ user_min_days }}" }
         - { name: 'PASS_WARN_AGE', value: "{{ user_warn_age }}" }
-        - { name: 'ENCRYPT_METHOD', value: "{{ user_encrypt_method | default('UNDEFINED') }}" }
+        - { name: 'ENCRYPT_METHOD', value: "{{ user_encrypt_method }}" }
         - { name: 'SHA_CRYPT_MAX_ROUNDS', value: "{{ user_sha_crypt_max_rounds | default('UNDEFINED') }}" }
         - { name: 'BCRYPT_MIN_ROUNDS', value: "{{ user_bcrypt_min_rounds | default('UNDEFINED') }}" }
         - { name: 'BCRYPT_MAX_ROUNDS', value: "{{ user_bcrypt_max_rounds | default('UNDEFINED') }}" }
@@ -42,8 +57,6 @@
         owner: root
         group: root
         mode: 0600
-  tags:
-    - set_login_defs
 
 ##############################################
 #### DEFAULT PROFILES

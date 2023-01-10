@@ -43,6 +43,8 @@
   failed_when: true
 
 - name: Ensure system accounts have nologin shell
+  tags:
+    - set_system_accounts_nologin_shell
   block:
     - name: Get list of accounts to change login shell to nologin
       ansible.builtin.shell: >
@@ -57,10 +59,10 @@
         name: "{{ item }}"
         shell: /usr/sbin/nologin
       loop: "{{ user_cmd_result.stdout_lines }}"
-  tags:
-    - set_system_accounts_nologin_shell
 
 - name: Ensure system accounts are locked
+  tags:
+    - lock_system_accounts
   block:
     - name: Retrieve all system accounts that needs to be locked
       ansible.builtin.shell: >
@@ -77,8 +79,6 @@
         name: "{{ item }}"
         password_lock: yes
       loop: "{{ user_cmd_result.stdout_lines }}"
-  tags:
-    - lock_system_accounts
 
 - name: Ensure default group for root is GID 0
   ansible.builtin.command: '/usr/sbin/usermod -g 0 root'
@@ -145,6 +145,8 @@
 
 # Check PATH environment variable from ROOT user
 - name: Ensure root PATH integrity
+  tags:
+    - check_root_path_integrity
   block:
     - name: Run script on root PATH variable
       ansible.builtin.script: files/path_check.sh
@@ -159,10 +161,10 @@
           - "{{ user_cmd_result.stdout_lines }}"
       failed_when: user_cmd_result.rc != 0
       changed_when: false
-  tags:
-    - check_root_path_integrity
 
 - name: Ensure all users home directories exist
+  tags:
+    - check_homedir_exists
   block:
     - name: Run script to check home dirs
       ansible.builtin.script: files/check_homedir_exists.sh
@@ -177,10 +179,10 @@
           - " {{ user_cmd_result.stdout_lines }}"
       failed_when: user_cmd_result.rc != 0
       changed_when: false
-  tags:
-    - check_homedir_exists
 
 - name: Ensure users home dir permissions are 750 or more restrictive
+  tags:
+    - check_home_dir_perms
   block:
     - name: Run script to check home directories
       ansible.builtin.script: files/check_homedir.sh
@@ -195,10 +197,10 @@
           - " {{ user_cmd_result.stdout_lines }}"
       failed_when: user_cmd_result.rc != 0
       changed_when: false
-  tags:
-    - check_home_dir_perms
 
 - name: Ensure users own their home directories
+  tags:
+    - check_home_dir_owner
   block:
     - name: Run script to check home directories
       ansible.builtin.script: files/homedir_owner_check.sh
@@ -213,10 +215,10 @@
           - " {{ user_cmd_result.stdout_lines }}"
       failed_when: user_cmd_result.rc != 0
       changed_when: false
-  tags:
-    - check_home_dir_owner
 
 - name: Ensure users dot files are not group or world writeable
+  tags:
+    - check_users_dot_files
   block:
     - name: Run script to check users files
       ansible.builtin.script: files/user_dot_file_check.sh
@@ -231,10 +233,10 @@
           - " {{ user_cmd_result.stdout_lines }}"
       failed_when: user_cmd_result.rc != 0
       changed_when: false
-  tags:
-    - check_users_dot_files
 
 - name: Ensure no users have .forward files
+  tags:
+    - check_users_forward_files
   block:
     - name: Run script to check users
       ansible.builtin.script: files/check_forward_files.sh
@@ -249,10 +251,10 @@
           - " {{ user_cmd_result.stdout_lines }}"
       failed_when: user_cmd_result.rc != 0
       changed_when: false
-  tags:
-    - check_users_forward_files
 
 - name: Ensure no users have .netrc files
+  tags:
+    - check_netrc_files
   block:
     - name: Run script to check users
       ansible.builtin.script: files/check_netrc.sh
@@ -267,10 +269,10 @@
           - " {{ user_cmd_result.stdout_lines }}"
       failed_when: user_cmd_result.rc != 0
       changed_when: false
-  tags:
-    - check_netrc_files
 
 - name: Ensure users .netrc Files are not group or world accessible
+  tags:
+    - check_netrc_files_perms
   block:
     - name: Run script to check .netrc files
       ansible.builtin.script: files/check_netrc_perms.sh
@@ -285,10 +287,10 @@
           - " {{ user_cmd_result.stdout_lines }}"
       failed_when: user_cmd_result.rc != 0
       changed_when: false
-  tags:
-    - check_netrc_files_perms
 
 - name: Ensure no users have .rhosts files
+  tags:
+    - check_find_rhosts
   block:
     - name: Run script to find .rhosts files
       ansible.builtin.script: files/find_rhosts.sh
@@ -303,10 +305,10 @@
           - " {{ user_cmd_result.stdout_lines }}"
       failed_when: user_cmd_result.rc != 0
       changed_when: false
-  tags:
-    - check_find_rhosts
 
 - name: Ensure all groups in /etc/passwd exist in /etc/group
+  tags:
+    - check_groups
   block:
     - name: Run script to check groups
       ansible.builtin.script: files/check_groups.sh
@@ -321,10 +323,10 @@
           - " {{ user_cmd_result.stdout_lines }}"
       failed_when: user_cmd_result.rc != 0
       changed_when: false
-  tags:
-    - check_groups
 
 - name: Ensure no duplicate UIDs exist
+  tags:
+    - check_duplicated_uid
   block:
     - name: Run script to check UIDs
       ansible.builtin.script: files/check_dup_uid.sh
@@ -339,10 +341,10 @@
           - " {{ user_cmd_result.stdout_lines }}"
       failed_when: user_cmd_result.rc != 0
       changed_when: false
-  tags:
-    - check_duplicated_uid
 
 - name: Ensure no duplicate GIDs exist
+  tags:
+    - check_duplicated_gid
   block:
     - name: Run script to check GIDs
       ansible.builtin.script: files/check_dup_gid.sh
@@ -357,10 +359,10 @@
           - " {{ user_cmd_result.stdout_lines }}"
       failed_when: user_cmd_result.rc != 0
       changed_when: false
-  tags:
-    - check_duplicated_gid
 
 - name: Ensure no duplicate user names exist
+  tags:
+    - check_duplicated_user_name
   block:
     - name: Run script to check user names
       ansible.builtin.script: files/check_dup_user_names.sh
@@ -375,10 +377,10 @@
           - " {{ user_cmd_result.stdout_lines }}"
       failed_when: user_cmd_result.rc != 0
       changed_when: false
-  tags:
-    - check_duplicated_user_name
 
 - name: Ensure no duplicate group names exist
+  tags:
+    - check_duplicated_user_name
   block:
     - name: Run script to check group names
       ansible.builtin.script: files/check_dup_group_names.sh
@@ -393,10 +395,10 @@
           - " {{ user_cmd_result.stdout_lines }}"
       failed_when: user_cmd_result.rc != 0
       changed_when: false
-  tags:
-    - check_duplicated_user_name
 
 - name: Report on shadow group in /etc/group
+  tags:
+    - check_shadow_group
   block:
     - name: Determine if the shadow group exists in /etc/group
       ansible.builtin.command: /usr/bin/grep "^shadow:" /etc/group
@@ -410,10 +412,10 @@
       changed_when: false
       failed_when: false
       when: user_cmd_result.stdout | length > 0
-  tags:
-    - check_shadow_group
 
 - name: Ensure only root have UID of 0
+  tags:
+    - check_uid_zero
   block:
     - name: Find accounts with UID of 0 (except root)
       ansible.builtin.shell: "awk -F: '($3 == 0 && ($1!=\"root\")) { print $1 }' /etc/passwd"
@@ -429,5 +431,3 @@
       changed_when: false
       failed_when: true
       when: user_cmd_result.stdout | length > 0
-  tags:
-    - check_uid_zero

@@ -35,15 +35,16 @@ user_shell_timeout: 900
 # Should tasks be executed to fix existing user accounts?
 user_fix_existing_accounts: yes
 
-## OPTIONAL VARIABLES ##
-
 # If set to MD5, MD5-based algorithm will be used for encrypting password
 # If set to SHA256, SHA256-based algorithm will be used for encrypting password
 # If set to SHA512, SHA512-based algorithm will be used for encrypting password
 # If set to BCRYPT, BCRYPT-based algorithm will be used for encrypting password
 # If set to YESCRYPT, YESCRYPT-based algorithm will be used for encrypting password
 # If set to DES, DES-based algorithm will be used for encrypting password
-#user_encrypt_method: "SHA512"
+# For security reasons it is recommended the use of yescrypt or SHA512
+user_encrypt_method: "YESCRYPT"
+
+## OPTIONAL VARIABLES ##
 
 # Only works if ENCRYPT_METHOD is set to SHA256 or SHA512.
 #
