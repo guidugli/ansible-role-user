@@ -16,6 +16,7 @@
   ansible.builtin.command: "chage --inactive {{ user_inactive_days }} {{ item }}"
   register: user_cmd_result
   failed_when: user_cmd_result.rc != 0
+  changed_when: true
   with_items: "{{ inactive_users_info.stdout_lines }}"
   when:
     - inactive_users_info.stdout_lines is defined
