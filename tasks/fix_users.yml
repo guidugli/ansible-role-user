@@ -66,12 +66,15 @@
     - lock_system_accounts
   block:
     - name: Retrieve all system accounts that needs to be locked
-      ansible.builtin.shell: >
-        awk -F:
-         '($1!="root" && $1!~/^\+/ &&
-         ($3<'"$(awk '/^\s*UID_MIN/{print $2}' /etc/login.defs)"' || $3==65534)) {print $1}' /etc/passwd |
-         xargs -I '{}' passwd -S '{}' |
+      ansible.builtin.shell: |
+        set -o pipefail
+        awk -F: \
+         '($1!="root" && $1!~/^\+/ && \
+         ($3<'"$(awk '/^\s*UID_MIN/{print $2}' /etc/login.defs)"' || $3==65534)) {print $1}' /etc/passwd | \
+         xargs -I '{}' passwd -S '{}' | \
          awk '($2!="L" && $2!="LK") {print $1}'
+      args:
+        executable: /bin/bash
       register: user_cmd_result
       changed_when: false
 
