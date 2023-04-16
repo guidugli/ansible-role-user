@@ -30,9 +30,9 @@
         command: ls -l --color=auto
         state: present
   pre_tasks:
-    - name: Install passwd
+    - name: Install commom tools
       ansible.builtin.package:
-        name: passwd
+        name: ['passwd', 'findutils']
         state: present
 
   roles:
