@@ -1,0 +1,68 @@
+---
+
+- name: "Ensure specified user account ({{ item.name }}) exist with correct attributes"
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    comment: "{{ item.comment | default(omit, true) }}"
+    uid: "{{ item.uid | default(omit, true) }}"
+    group: "{{ item.group | default(omit, true) }}"
+    groups: "{{ item.groups | default([], true) | join(',') | default(omit, true) }}"
+    shell: "{{ item.shell }}"
+    home: "{{ item.home | default(omit, true) }}"
+    password: "{{ item.password | default(omit) }}"
+    append: no
+    update_password: always
+    state: present
+  register: user_info
+
+- name: Set variables that uses user uid
+  set_fact:
+    xdg_runtime_dir: "/run/user/{{ user_info.uid }}"
+
+- name: Check if user is lingering
+  stat:
+    path: "/var/lib/systemd/linger/{{ user_info.name }}"
+  register: user_lingering
+  when:
+    - user_info.uid | int != 0
+    - item.linger is defined
+
+
+- name: Enable Lingering
+  when:
+    - item.linger is defined
+    - item.linger == true
+    - not user_lingering.stat.exists
+  block:
+    - name: Enabling lingering
+      command: "loginctl enable-linger {{ user_info.name }}"
+      changed_when: true
+      when:
+        - user_info.uid | int != 0
+
+    - name: Add XDG_RUNTIME_DIR variable to .bashrc
+      ansible.builtin.lineinfile:
+        path: "{{ user_info.home }}/.bashrc"
+        line: "export XDG_RUNTIME_DIR={{ xdg_runtime_dir }}"
+        create: no
+      when: user_info.uid | int != 0
+
+- name: Disable Lingering
+  when:
+    - item.linger is defined
+    - item.linger == false
+    - user_lingering.stat.exists
+  block:
+    - name: Enabling lingering
+      command: "loginctl disable-linger {{ user_info.name }}"
+      changed_when: true
+      when:
+        - user_info.uid | int != 0
+
+    - name: Remove XDG_RUNTIME_DIR variable from .bashrc
+      ansible.builtin.lineinfile:
+        path: "{{ user_info.home }}/.bashrc"
+        line: "export XDG_RUNTIME_DIR={{ xdg_runtime_dir }}"
+        create: no
+        state: absent
+      when: user_info.uid | int != 0

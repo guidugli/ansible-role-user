@@ -22,18 +22,7 @@
 
 # Loop through provided list and ensure user is in the system, with correct attributes
 - name: Ensure specified user accounts exist with correct attributes
-  ansible.builtin.user:
-    name: "{{ item.name }}"
-    comment: "{{ item.comment | default(omit, true) }}"
-    uid: "{{ item.uid | default(omit, true) }}"
-    group: "{{ item.group | default(omit, true) }}"
-    groups: "{{ item.groups | default([], true) | join(',') | default(omit, true) }}"
-    shell: "{{ item.shell }}"
-    home: "{{ item.home | default(omit, true) }}"
-    password: "{{ item.password | default(omit) }}"
-    append: no
-    update_password: always
-    state: present
+  include_tasks: create_user.yml
   loop: "{{ user_account_add }}"
   loop_control:
     label: "{{ item.name }}"
@@ -43,7 +32,6 @@
 - name: Update
   ansible.builtin.set_fact:
     ansible_become_pass: "{{ user_new_password }}"
-    #ansible_ssh_pass: "{{ user_new_password }}"
   when:
     - user_new_password is defined
     - user_new_password | length > 0
