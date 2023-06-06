@@ -17,6 +17,13 @@
         groups: ['admin']
         shell: /bin/bash
         password: $6$2wZzwU2K4qiE7Gl6$AFu9MPHOb.Co2s2fy4nGKMtbM8JU3h7hr469nN7CcSXAHsCxEzm.gWB73lZHRUeLjgUj75phVUl4aU2TtQehT1
+      - name: srvacct
+        comment: test account
+        shell: /usr/sbin/nologin
+        password: '!'
+        password_lock: true
+        umask: '0027'
+        update_password: 'on_create'
     user_account_remove:
       - removeme
     user_group_add:

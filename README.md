@@ -62,7 +62,8 @@ Sets the root password.
       #  shell: /bin/bash
       #  password: encpwd
 
-Add/Change the specified accounts. Default value is empty list. The lines above that are commented show an example on how to specify an entry.
+Add/Change the specified accounts. Default value is empty list. The lines above that are commented show an example on how to specify an entry. All options from ansible.builtin.user are available, in addition to a new option "linger", which enables/disables user lingering (check loginctl command for more information on user lingering). If linger is not specified, lingering will not be changed. If set to false, lingering will be disabled. If set to true, lingering will be enabled.
+NOTE: linger will not work on containers because it needs systemd and dbus.
 
     user_account_remove: []
       #- acc_to_be_removed
@@ -73,9 +74,7 @@ List of user names to be removed from the system.
     #  - name: admin
     #    gid: 760
 
-Add the specified groups to the system. Default is empty list. The lines above that are commented show an example on how to specify an entry. The only mandatory parameter for each user entry is the name (username) field. Other available parameters are: comment, uid, group (primary group), groups(other groups), shell, password, linger. 
-The linger option can enable user lingering (check loginctl command for more information on user lingering). If linger is not specified, lingering will not be changed. If set to false, lingering will be disabled. If set to true, lingering will be enabled.
-NOTE: linger will not work on containers because it needs systemd and dbus.
+Add the specified groups to the system. Default is empty list. The lines above that are commented show an example on how to specify an entry. The only mandatory parameter for each user entry is the name (group name) field. 
 
     user_group_remove: []
     #  - mygroup
