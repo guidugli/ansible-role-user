@@ -7,16 +7,21 @@
 
 - name: Setting up login definitions (include set_login_defs.yml)
   ansible.builtin.include_tasks: set_login_defs.yml
+  when: user_skip_config == false
 
 - name: Ensure critical user/group management file have correct permissions (include file_permissions.yml)
   ansible.builtin.include_tasks: file_permissions.yml
+  when: user_skip_config == false
 
 - name: Ensure root password is set and single user mode is configured correctly (include root_singleuser.yml)
   ansible.builtin.include_tasks: root_singleuser.yml
-  when: user_configure_single_user
+  when:
+    - user_configure_single_user
+    - user_skip_config == false
 
 - name: Manage users and groups (include user_group_management.yml)
   ansible.builtin.include_tasks: user_group_management.yml
 
 - name: Search/Fix/Report users with invalid settings
   ansible.builtin.include_tasks: fix_users.yml
+  when: user_skip_config == false

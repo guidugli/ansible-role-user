@@ -1,6 +1,10 @@
 ---
 # defaults file for user settings
 
+# If set to true, it will skip all user configuration and will do only add/remove
+# of users and groups
+user_skip_config: false
+
 # If the password of the user running ansible changes
 # this variable needs to have the new password, so
 # ansible_become_pass and ansible_ssh_pass can be updated

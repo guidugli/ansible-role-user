@@ -14,6 +14,10 @@ Role Variables
 
 **Available variables are listed below, along with default values (see defaults/main.yml):**
 
+    user_skip_config: false
+
+If set to true, it will skip all user configuration and will do only add/remove of users and groups
+
     user_new_password: "{{ vault_admin_password }}"
 
 If the password of the user running ansible changes, this variable needs to have the new password, so ansible_become_pass and ansible_ssh_pass can be updated. Recommended to store the password on another file and encrypt it with vault.
