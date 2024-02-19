@@ -9,14 +9,14 @@
     user_umask: '027'
     user_shell_timeout: 900
     user_fix_existing_accounts: yes
-    root_password: $6$2wZzwU2K4qiE7Gl6$AFu9MPHOb.Co2s2fy4nGKMtbM8JU3h7hr469nN7CcSXAHsCxEzm.gWB73lZHRUeLjgUj75phVUl4aU2TtQehT1
+    root_password: $6$2wZzwU2K4qiE7Gl6$AFu9MPHOb.Co2s2fy4nGKMtbM8JU3h7hr469nN7CcSXAHsCxEzm.gWB73lZHRUeLjgUj75phVUl4aU2TtQehT1 # yamllint disable-line rule:line-length
     user_account_add:
       - name: example
         comment: This is an example
         uid: 1076
         groups: ['admin']
         shell: /bin/bash
-        password: $6$2wZzwU2K4qiE7Gl6$AFu9MPHOb.Co2s2fy4nGKMtbM8JU3h7hr469nN7CcSXAHsCxEzm.gWB73lZHRUeLjgUj75phVUl4aU2TtQehT1
+        password: $6$2wZzwU2K4qiE7Gl6$AFu9MPHOb.Co2s2fy4nGKMtbM8JU3h7hr469nN7CcSXAHsCxEzm.gWB73lZHRUeLjgUj75phVUl4aU2TtQehT1 # yamllint disable-line rule:line-length
       - name: srvacct
         comment: test account
         shell: /usr/sbin/nologin
