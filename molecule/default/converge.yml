@@ -36,11 +36,5 @@
         alias: myls
         command: ls -l --color=auto
         state: present
-  pre_tasks:
-    - name: Install commom tools
-      ansible.builtin.package:
-        name: ['passwd', 'findutils']
-        state: present
-
   roles:
     - guidugli.user
