@@ -12,5 +12,5 @@
 
     - name: Install commom tools
       ansible.builtin.package:
-        name: ['passwd', 'findutils']
+        name: ['passwd', 'findutils', 'gawk']
         state: present
