@@ -1,11 +1,26 @@
 ---
-
-- name: Ensure correct permission on critical system files
-  ansible.builtin.file:
+- name: Check critical file existence
+  ansible.builtin.stat:
     path: "{{ item.name }}"
-    owner: "{{ item.owner }}"
-    group: "{{ item.group }}"
-    mode: "{{ item.mode }}"
-  loop: "{{ user_critical_files_perms[ansible_os_family] }}"
+  register: user_critical_file_stat
+  loop: "{{ user_critical_files_perms[ansible_facts['os_family']] | default([]) }}"
   loop_control:
     label: "{{ item.name }}"
+  tags:
+    - user
+    - validate
+
+- name: Ensure critical user and group files have expected permissions
+  ansible.builtin.file:
+    path: "{{ item.item.name }}"
+    owner: "{{ item.item.owner }}"
+    group: "{{ item.item.group }}"
+    mode: "{{ item.item.mode }}"
+  loop: "{{ user_critical_file_stat.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    - item.stat.exists
+  tags:
+    - user
+    - config

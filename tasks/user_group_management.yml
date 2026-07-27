@@ -1,6 +1,4 @@
 ---
-
-# Loop through provided list and ensure group is in the system, with correct attributes
 - name: Ensure specified groups exist with correct attributes
   ansible.builtin.group:
     name: "{{ item.name }}"
@@ -9,51 +7,59 @@
   loop: "{{ user_group_add }}"
   loop_control:
     label: "{{ item.name }}"
-  when: user_group_add is defined
+  tags:
+    - user
+    - config
 
-# Loop through provided list and ensure user is not present in the system
-- name: Ensure specified groups do not exist in the system
+- name: Ensure specified groups do not exist
   ansible.builtin.group:
     name: "{{ item }}"
     state: absent
-  loop: "{{ user_group_remove | default([], true) }}"
-  when: user_group_remove is defined
+  loop: "{{ user_group_remove }}"
+  tags:
+    - user
+    - config
 
-
-# Loop through provided list and ensure user is in the system, with correct attributes
 - name: Ensure specified user accounts exist with correct attributes
-  include_tasks: create_user.yml
+  ansible.builtin.include_tasks: create_user.yml
   loop: "{{ user_account_add }}"
   loop_control:
     label: "{{ item.name }}"
-  when: user_account_add is defined
+  tags:
+    - user
+    - config
 
-# Update current
-- name: Update
+- name: Refresh become password variable when requested by caller
   ansible.builtin.set_fact:
     ansible_become_pass: "{{ user_new_password }}"
-  when:
-    - user_new_password is defined
-    - user_new_password | length > 0
+  when: user_new_password | length > 0
+  tags:
+    - user
+    - config
 
-# Loop through provided list and ensure user is not present in the system
-- name: Ensure specified user accounts do not exist in the system
+- name: Ensure specified user accounts do not exist
   ansible.builtin.user:
     name: "{{ item }}"
     state: absent
-    remove: yes
-  loop: "{{ user_account_remove | default([], true) }}"
-  when: user_account_remove is defined
+    remove: true
+  loop: "{{ user_account_remove }}"
+  tags:
+    - user
+    - config
 
-# Add/remove aliases from bashrc
-- name: Add/Remove aliases from user's .bashrc  # noqa: args[module]
+- name: Add or remove aliases from user bashrc files
   vars:
-    homepath: "{{ '/root/.bashrc' if item.user == 'root' else '/home/' + item.user + '/.bashrc' }}"
+    user_alias_home: "{{ '/root/.bashrc' if item.user == 'root' else '/home/' ~ item.user ~ '/.bashrc' }}"
   ansible.builtin.lineinfile:
-    path: "{{ homepath }}"
-    regex: '^alias\s+{{ item.alias }}='
+    path: "{{ user_alias_home }}"
+    regexp: '^alias\s+{{ item.alias | regex_escape }}='
     line: "alias {{ item.alias }}='{{ item.command }}'"
     state: "{{ item.state }}"
-    mode: '0640'
-    create: no
-  loop: "{{ user_alias | default([], true) }}"
+    mode: "0640"
+    create: false
+  loop: "{{ user_alias }}"
+  loop_control:
+    label: "{{ item.user }}:{{ item.alias }}"
+  tags:
+    - user
+    - config

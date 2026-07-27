@@ -1,0 +1,56 @@
+---
+- name: Verify user role
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Verify login.defs password aging settings
+      ansible.builtin.command: "grep -E '^{{ item.key }}[[:space:]]+{{ item.value }}$' /etc/login.defs"
+      loop:
+        - key: PASS_MAX_DAYS
+          value: "{{ user_max_days | default(365) }}"
+        - key: PASS_MIN_DAYS
+          value: "{{ user_min_days | default(7) }}"
+        - key: PASS_WARN_AGE
+          value: "{{ user_warn_age | default(7) }}"
+        - key: ENCRYPT_METHOD
+          value: "{{ user_encrypt_method | default('YESCRYPT') }}"
+        - key: UMASK
+          value: "{{ user_umask | default('027') }}"
+      changed_when: false
+      tags:
+        - user
+        - validate
+
+    - name: Verify TMOUT profile drop-in exists
+      ansible.builtin.stat:
+        path: /etc/profile.d/50-user-tmout.sh
+      register: user_verify_tmout
+      tags:
+        - user
+        - validate
+
+    - name: Assert TMOUT profile drop-in exists
+      ansible.builtin.assert:
+        that:
+          - user_verify_tmout.stat.exists
+        quiet: true
+      tags:
+        - user
+        - validate
+
+    - name: Verify umask profile drop-in exists
+      ansible.builtin.stat:
+        path: /etc/profile.d/60-user-umask.sh
+      register: user_verify_umask
+      tags:
+        - user
+        - validate
+
+    - name: Assert umask profile drop-in exists
+      ansible.builtin.assert:
+        that:
+          - user_verify_umask.stat.exists
+        quiet: true
+      tags:
+        - user
+        - validate

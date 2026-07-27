@@ -1,92 +1,119 @@
 ---
-
-- name: Validate numeric variables are correctly set
+- name: Validate numeric role settings
   ansible.builtin.assert:
     that:
-      - vars[item] is defined
-      - vars[item] | int(-1) > -1
-    quiet: yes
-  loop:
-    - user_max_days
-    - user_min_days
-    - user_inactive_days
-    - user_warn_age
-    - user_shell_timeout
-  loop_control:
-    label: "{{ item }}: {{ vars[item] | default('undefined') }}"
+      - user_max_days is defined
+      - user_min_days is defined
+      - user_inactive_days is defined
+      - user_warn_age is defined
+      - user_shell_timeout is defined
+      - user_max_days | int > 0
+      - user_min_days | int >= 0
+      - user_inactive_days | int >= 0
+      - user_warn_age | int >= 0
+      - user_shell_timeout | int > 0
+    quiet: true
+  tags:
+    - user
+    - validate
 
-- name: Validate optional umask setting
+- name: Validate CIS numeric policy boundaries
   ansible.builtin.assert:
     that:
-      - user_umask | int > 0
+      - user_max_days | int <= 365
+      - user_min_days | int > 0
+      - user_warn_age | int >= 7
+      - user_inactive_days | int <= 45
+      - user_shell_timeout | int <= 900
+    quiet: true
+  tags:
+    - user
+    - validate
+
+- name: Validate umask setting
+  ansible.builtin.assert:
+    that:
+      - user_umask is defined
+      - user_umask is string
       - user_umask is regex('^[0-7]{3,4}$')
-    quiet: yes
-  when: user_umask is defined
+    quiet: true
+  tags:
+    - user
+    - validate
 
-- name: Validate user_fix_existing_accounts value
+- name: Validate boolean options
   ansible.builtin.assert:
     that:
+      - user_skip_config is defined
       - user_fix_existing_accounts is defined
+      - user_configure_single_user is defined
+      - user_skip_config | type_debug == 'bool'
       - user_fix_existing_accounts | type_debug == 'bool'
-    quiet: yes
+      - user_configure_single_user | type_debug == 'bool'
+    quiet: true
+  tags:
+    - user
+    - validate
 
-- name: Validate user_configure_single_user value
+- name: Validate password encryption method
   ansible.builtin.assert:
     that:
-      - user_configure_single_user is defined
-      - user_configure_single_user | type_debug == 'bool'
-    quiet: yes
+      - user_encrypt_method is defined
+      - user_encrypt_method is string
+      - user_encrypt_method in ['YESCRYPT', 'SHA512', 'SHA256', 'BCRYPT', 'DES', 'MD5']
+      - user_encrypt_method in ['YESCRYPT', 'SHA512']
+    quiet: true
+  tags:
+    - user
+    - validate
 
-
-- name: Validate user_account_add information
+- name: Validate user account definitions
   vars:
-    pathre: '^(?:[\/])$|^(?:[\/][a-zA-Z0-9_.-]+)+[\/]?$'
+    user_path_regex: '^/'
   ansible.builtin.assert:
     that:
       - item.name is defined
       - item.name is string
       - item.name | length > 0
       - item.uid is not defined or (item.uid | int > 0)
-      - item.shell is not defined or item.shell is regex(pathre)
+      - item.shell is not defined or item.shell is regex(user_path_regex)
       - item.password is not defined or item.password is string
-      - item.password is not defined or item.password | length > 0
-    quiet: yes
+      - item.linger is not defined or item.linger | type_debug == 'bool'
+    quiet: true
   loop: "{{ user_account_add }}"
   loop_control:
     label: "{{ item.name | default('undefined') }}"
-  when: user_account_add is defined
+  tags:
+    - user
+    - validate
 
-- name: Validate user_group_add information
+- name: Validate group definitions
   ansible.builtin.assert:
     that:
       - item.name is defined
       - item.name is string
       - item.name | length > 0
       - item.gid is not defined or (item.gid | int > 0)
-    quiet: yes
+    quiet: true
   loop: "{{ user_group_add }}"
   loop_control:
     label: "{{ item.name | default('undefined') }}"
-  when: user_group_add is defined
+  tags:
+    - user
+    - validate
 
 - name: Validate users and groups to be removed
   ansible.builtin.assert:
     that:
-      - item is defined
       - item is string
       - item | length > 0
-    quiet: yes
-  loop: "{{ (user_account_remove | default([], true)) + (user_group_remove | default([], true)) }}"
-  when: user_account_remove is defined or user_group_remove is defined
+    quiet: true
+  loop: "{{ user_account_remove + user_group_remove }}"
+  tags:
+    - user
+    - validate
 
-- name: Validade user_alias list
-  ansible.builtin.assert:
-    that:
-      - user_alias is iterable
-    quiet: yes
-  when: user_alias is defined
-
-- name: Validade user_alias list items
+- name: Validate alias definitions
   ansible.builtin.assert:
     that:
       - item.user is defined
@@ -96,18 +123,11 @@
       - item.alias is string
       - item.alias | length > 0
       - item.state is defined
-      - item.state is string
       - item.state in ['present', 'absent']
-      - (item.command is defined) or (item.state == 'absent')
-      - (item.command is not defined) or item.command is string
-      - (item.command is not defined) or item.command | length > 0
-    quiet: yes
-  loop: "{{ user_alias | default([], true) }}"
-
-- name: Validate password encryption method
-  ansible.builtin.assert:
-    that:
-      - user_encrypt_method is string
-      - user_encrypt_method | length > 0
-      - user_encrypt_method in ['YESCRYPT', 'SHA512', 'SHA256', 'BCRYPT', 'DES', 'MD5']
-    quiet: yes
+      - item.command is defined or item.state == 'absent'
+      - item.command is not defined or item.command is string
+    quiet: true
+  loop: "{{ user_alias }}"
+  tags:
+    - user
+    - validate

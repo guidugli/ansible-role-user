@@ -1,147 +1,99 @@
-Ansible Role: User
-=========
+[![CI](https://github.com/guidugli/ansible-role-user/actions/workflows/CI.yml/badge.svg)](https://github.com/guidugli/ansible-role-user/actions/workflows/CI.yml)
+[![Release](https://img.shields.io/github/v/tag/guidugli/ansible-role-user?sort=semver)](https://github.com/guidugli/ansible-role-user/tags)
+[![Galaxy](https://img.shields.io/badge/galaxy-guidugli.user-blue.svg)](https://galaxy.ansible.com/ui/standalone/roles/guidugli/user/)
+[![License](https://img.shields.io/github/license/guidugli/ansible-role-user)](LICENSE)
 
-An Ansible Role that sets login definitions, user policies and also perform security checks related to users and groups.
-Target systems: RHEL/CentOS, Fedora, and Debian/Ubuntu.
+# Ansible Role: user
 
-Requirements
-------------
+Manage local Linux users, groups, password-aging defaults, shell timeout, default umask, and CIS-aligned user account checks.
+The role is intentionally privilege-neutral: it never sets `become`, `become_user`, or `become_method` inside role tasks. Callers decide whether privilege escalation is required.
 
-No additional requirements.
+## Requirements
 
-Role Variables
---------------
+- Ansible Core 2.14 or newer according to role metadata.
+- Linux target with local account files such as `/etc/passwd`, `/etc/group`, `/etc/shadow`, and `/etc/login.defs`.
+- Root-level permissions are required for most configuration and remediation tasks. Supply privilege externally in your playbook or automation platform.
+- The `containers.podman` collection is required for Molecule container scenarios and is pinned in `requirements.yml` with a minimum version.
 
-**Available variables are listed below, along with default values (see defaults/main.yml):**
+## Variables
 
-    user_skip_config: false
+| Variable | Type | Default | Description |
+|---|---:|---:|---|
+| `user_skip_config` | bool | `false` | Skip login definition and account-hardening configuration. User and group management still runs. |
+| `user_new_password` | string | `""` | Optional value used to refresh `ansible_become_pass` after a controlled password rotation. Store sensitive values in Ansible Vault. |
+| `user_configure_single_user` | bool | `false` | Configure systemd rescue/emergency units to use `systemd-sulogin-shell`. Applies only on systemd hosts. |
+| `user_max_days` | int | `365` | Sets `PASS_MAX_DAYS`. CIS RHEL 10 guidance expects a value greater than 0 and not more than 365. |
+| `user_min_days` | int | `7` | Sets `PASS_MIN_DAYS`. CIS guidance expects a value greater than 0. |
+| `user_inactive_days` | int | `30` | Sets the default inactive account lock period with `useradd -D -f`. CIS RHEL 10 allows no more than 45 days. |
+| `user_warn_age` | int | `7` | Sets `PASS_WARN_AGE`. CIS guidance expects 7 or more days. |
+| `user_umask` | string | `"027"` | Sets `UMASK` and a profile drop-in. CIS guidance expects `027` or more restrictive. |
+| `user_shell_timeout` | int | `900` | Sets `TMOUT` through `/etc/profile.d/50-user-tmout.sh`. CIS guidance expects no more than 900 seconds. |
+| `user_fix_existing_accounts` | bool | `true` | Remediate existing local user aging settings where deterministic, and fail with a clear report when manual remediation is required. |
+| `user_encrypt_method` | string | `"YESCRYPT"` | Sets `ENCRYPT_METHOD`. CIS RHEL 10 accepts `SHA512` or `YESCRYPT`; this role defaults to `YESCRYPT`. |
+| `user_sha_crypt_max_rounds` | raw | `null` | Optional `SHA_CRYPT_MAX_ROUNDS` entry in `/etc/login.defs`. |
+| `user_bcrypt_min_rounds` | raw | `null` | Optional `BCRYPT_MIN_ROUNDS` entry in `/etc/login.defs`. |
+| `user_bcrypt_max_rounds` | raw | `null` | Optional `BCRYPT_MAX_ROUNDS` entry in `/etc/login.defs`. |
+| `user_yescrypt_cost_factor` | raw | `null` | Optional `YESCRYPT_COST_FACTOR` entry in `/etc/login.defs`. |
+| `root_password` | string | `""` | Optional root password hash. Leave empty to avoid changing the root password. |
+| `user_account_add` | list(dict) | `[]` | Users to create/update. Supports common `ansible.builtin.user` options plus `linger` for systemd lingering. |
+| `user_account_remove` | list(string) | `[]` | User names to remove. |
+| `user_group_add` | list(dict) | `[]` | Groups to create/update. Each item requires `name`; `gid` is optional. |
+| `user_group_remove` | list(string) | `[]` | Group names to remove. |
+| `user_alias` | list(dict) | `[]` | Bash aliases to add/remove. Each item uses `user`, `alias`, `state`, and `command` when `state: present`. |
 
-If set to true, it will skip all user configuration and will do only add/remove of users and groups
+## Example Playbook
 
-    user_new_password: "{{ vault_admin_password }}"
-
-If the password of the user running ansible changes, this variable needs to have the new password, so ansible_become_pass and ansible_ssh_pass can be updated. Recommended to store the password on another file and encrypt it with vault.
-
-    user_configure_single_user: no
-
-Indicates if single user mode is to be configured (needs to have root password set)
-
+```yaml
+---
+- name: Configure local user security policy
+  hosts: servers
+  become: true
+  vars:
     user_max_days: 365
-
-Number of days before password expire
-
     user_min_days: 7
-
-Number of days until user is allowed to change password
-
     user_inactive_days: 30
-
-Number of days before user is considered inactive
-
     user_warn_age: 7
-
-Number of days before password expire that will generate a warning to the user
-
-    user_umask: '027'
-
-UMASK to be used by all users
-
+    user_umask: "027"
     user_shell_timeout: 900
+    user_encrypt_method: YESCRYPT
+    user_account_add:
+      - name: example
+        comment: Example account
+        uid: 1076
+        groups:
+          - admin
+        shell: /bin/bash
+        password: "$6$example-hash"
+        linger: false
+    user_group_add:
+      - name: admin
+        gid: 760
+    user_alias:
+      - user: example
+        alias: ll
+        command: ls -l --color=auto
+        state: present
+  roles:
+    - role: guidugli.user
+```
 
-Shell timeout in seconds
+## Molecule Testing
 
-    user_fix_existing_accounts: yes
+The role uses shared Molecule converge and verify playbooks under `molecule/shared/` with default and systemd scenarios. The scenario inventories are generator-managed and should not be edited directly.
 
-If set to true/yes it will perform security checks on users and groups.
+Typical local validation commands:
 
-    root_password: ''
+```bash
+ansible-galaxy collection install -r requirements.yml
+molecule test -s default
+molecule test -s systemd
+```
 
-Sets the root password.
+The shared verify playbook checks password-aging entries, hashing method, `UMASK`, and profile drop-ins for `TMOUT` and umask.
 
-    user_account_add: []
-      #- name: example
-      #  comment: This is an example
-      #  uid: 1076
-      #  groups: ['admin']
-      #  shell: /bin/bash
-      #  password: encpwd
+## Execution Notes
 
-Add/Change the specified accounts. Default value is empty list. The lines above that are commented show an example on how to specify an entry. All options from ansible.builtin.user are available, in addition to a new option "linger", which enables/disables user lingering (check loginctl command for more information on user lingering). If linger is not specified, lingering will not be changed. If set to false, lingering will be disabled. If set to true, lingering will be enabled.
-NOTE: linger will not work on containers because it needs systemd and dbus.
-
-    user_account_remove: []
-      #- acc_to_be_removed
-
-List of user names to be removed from the system.
-
-    user_group_add: []
-    #  - name: admin
-    #    gid: 760
-
-Add the specified groups to the system. Default is empty list. The lines above that are commented show an example on how to specify an entry. The only mandatory parameter for each user entry is the name (group name) field. 
-
-    user_group_remove: []
-    #  - mygroup
-
-Remove the specified groups from the system.
-
-    user_alias: []
-    #  - user: example
-    #    alias: ll
-    #    command: ls -l --color=auto
-    #    state: present
-
-Specify aliases to be created/removed from user's bashrc file. Command is not required when state is absent. Default is empty list. The lines above that are commented show an example on how to specify an entry.
-
-
-Dependencies
-------------
-
-No dependencies.
-
-Example Playbook
-----------------
-
-    - hosts: servers
-      vars:
-        user_max_days: 365
-        user_min_days: 7
-        user_inactive_days: 30
-        user_warn_age: 7
-        user_umask: '027'
-        user_shell_timeout: 900
-        user_fix_existing_accounts: yes
-        root_password: mypass
-        user_account_add:
-          - name: example
-            comment: This is an example
-            uid: 1076
-            groups: ['admin']
-            shell: /bin/bash
-            password: encpwd
-            linger: false
-        user_account_remove:
-          - removeme
-        user_group_add:
-          - name: admin
-            gid: 760
-        user_group_remove:
-          - mygroup
-        user_alias:
-          - user: example
-            alias: myls
-            command: ls -l --color=auto
-            state: present
-
-      roles:
-         - { role: guidugli.user }
-
-License
--------
-
-MIT / BSD
-
-Author Information
-------------------
-
-This role was created in 2020 by Carlos Guidugli.
+- **Privilege model:** the role never declares `become`. Use `become: true` at the play, inventory, or automation-controller level for real hosts where `/etc`, `/usr`, `/var`, account management, or password-aging changes require elevated privileges.
+- **Container behavior:** Molecule containers generally execute as root and use `become: false` in scenario playbooks. Role tasks do not assume privilege escalation.
+- **Systemd behavior:** systemd-specific tasks are guarded with `ansible_facts['service_mgr'] == 'systemd'`. User lingering is attempted only when `loginctl` is available. Rescue/emergency unit edits are skipped on non-systemd hosts.
+- **CIS alignment:** defaults are selected to align with the included RHEL 10 CIS user-account guidance for password aging, inactive lock, hashing method, root/system account checks, shell timeout, and umask. Debian 13 benchmark content was not text-extractable in the provided attachment, so Debian-specific claims are limited to generic Linux-account behavior.

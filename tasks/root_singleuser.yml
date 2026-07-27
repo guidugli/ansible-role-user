@@ -1,36 +1,43 @@
 ---
-
-- name: Set root password
+- name: Set root password when a password hash is supplied
   ansible.builtin.user:
     name: root
     password: "{{ root_password }}"
-  when: root_password is defined
+  when: root_password | length > 0
+  tags:
+    - user
+    - config
 
-- name: Check if root has a password
-  ansible.builtin.lineinfile:
-    path: /etc/shadow
-    regexp: '^root:[*\!|*\*]*:'
-    state: absent
-  check_mode: yes
+- name: Check root password status
+  ansible.builtin.command: passwd -S root
+  register: user_root_password_status
   changed_when: false
-  register: root_pw_check
-  failed_when: false
+  failed_when: user_root_password_status.rc not in [0, 1]
+  tags:
+    - user
+    - validate
 
-- name: Set single user to use use a secure shell
+- name: Require root password to be set or locked
+  ansible.builtin.assert:
+    that:
+      - user_root_password_status.stdout is search('^root\s+(P|L)\b')
+    fail_msg: >-
+      The root account must have a password set or be locked before single-user mode is configured.
+    quiet: true
+  tags:
+    - user
+    - validate
+
+- name: Configure rescue and emergency shells to use sulogin on systemd hosts
   ansible.builtin.lineinfile:
-    path: /usr/lib/systemd/system/{{ item }}.service
+    path: "/usr/lib/systemd/system/{{ item }}.service"
     regexp: '^ExecStart=-'
     line: "ExecStart=-/usr/lib/systemd/systemd-sulogin-shell {{ item }}"
-    create: no
-  when: root_pw_check.found != "0"
-  with_items:
+    create: false
+  loop:
     - rescue
     - emergency
-
-- name: If no root password is set up, notify the user and do not set password or single user mode
-  ansible.builtin.debug:
-    msg: >
-      Root password is not set and no password provided. Set root_password variable per instructions
-      and restart playbook.
-  failed_when: true
-  when: root_pw_check.found and root_password is not defined
+  when: ansible_facts['service_mgr'] == 'systemd'
+  tags:
+    - user
+    - config

@@ -1,105 +1,45 @@
 ---
 # defaults file for user settings
 
-# If set to true, it will skip all user configuration and will do only add/remove
-# of users and groups
+# If true, skip login definition and account-hardening configuration and only manage users/groups.
 user_skip_config: false
 
-# If the password of the user running ansible changes
-# this variable needs to have the new password, so
-# ansible_become_pass and ansible_ssh_pass can be updated
-# Store the password on another file and encrypt it with vault.
-#user_new_password: "{{ vault_admin_password }}"
+# Optional replacement password used only to refresh ansible_become_pass for subsequent tasks.
+user_new_password: ""
 
-# indicates if single user mode is to be configured
-# (needs to have root password set)
-user_configure_single_user: no
+# Configure rescue/emergency single-user shell handling. Requires a root password or locked root account.
+user_configure_single_user: false
 
-## Password settings ##
-
-# Number of days before password expire
+# Password aging defaults aligned with CIS user-account guidance.
 user_max_days: 365
-
-# Number of days until user is allowed to change password
 user_min_days: 7
-
-# Number of days before user is considered inactive
 user_inactive_days: 30
-
-# Number of days before password expire that will
-# generate a warning to the user
 user_warn_age: 7
 
-# UMASK to be used by all users
-#user_umask: '027'
+# Default user umask. CIS guidance expects 027 or more restrictive.
+user_umask: "027"
 
-# Shell timeout in seconds
+# Shell inactivity timeout in seconds. CIS guidance expects 900 seconds or less.
 user_shell_timeout: 900
 
-# Should tasks be executed to fix existing user accounts?
-user_fix_existing_accounts: yes
+# Run validation and remediation tasks for existing local users/groups.
+user_fix_existing_accounts: true
 
-# If set to MD5, MD5-based algorithm will be used for encrypting password
-# If set to SHA256, SHA256-based algorithm will be used for encrypting password
-# If set to SHA512, SHA512-based algorithm will be used for encrypting password
-# If set to BCRYPT, BCRYPT-based algorithm will be used for encrypting password
-# If set to YESCRYPT, YESCRYPT-based algorithm will be used for encrypting password
-# If set to DES, DES-based algorithm will be used for encrypting password
-# For security reasons it is recommended the use of yescrypt or SHA512
+# Password hashing algorithm for /etc/login.defs.
 user_encrypt_method: "YESCRYPT"
 
-## OPTIONAL VARIABLES ##
+# Optional algorithm tuning parameters for /etc/login.defs.
+user_sha_crypt_max_rounds: null
+user_bcrypt_min_rounds: null
+user_bcrypt_max_rounds: null
+user_yescrypt_cost_factor: null
 
-# Only works if ENCRYPT_METHOD is set to SHA256 or SHA512.
-#
-# Define the number of SHA rounds.
-# With a lot of rounds, it is more difficult to brute-force the password.
-# However, more CPU resources will be needed to authenticate users if
-# this value is increased.
-#user_sha_crypt_max_rounds: 5000
+# Optional root password hash. Leave empty to avoid changing the root password.
+root_password: ""
 
-# Only works if ENCRYPT_METHOD is set to BCRYPT.
-#
-# Define the number of BCRYPT rounds.
-# With a lot of rounds, it is more difficult to brute-force the password.
-# However, more CPU resources will be needed to authenticate users if
-# this value is increased.
-#user_bcrypt_min_rounds: 13
-#user_bcrypt_max_rounds: 31
-
-# Only works if ENCRYPT_METHOD is set to YESCRYPT.
-#
-# Define the YESCRYPT cost factor.
-# With a higher cost factor, it is more difficult to brute-force the password.
-# However, more CPU time and more memory will be needed to authenticate users
-# if this value is increased.
-#user_yescrypt_cost_factor: 5
-
-
-#root_password: myencryptedpass
-
-#user_account_add:
-#  - name: example
-#    comment: This is an example
-#    uid: 1076
-#    groups: ['admin']
-#    shell: /bin/bash
-#    password: encpwd
-
-#user_account_remove:
-#  - removeme
-
-#user_group_add:
-#  - name: admin
-#    gid: 760
-
-#user_group_remove:
-#  - mygroup
-
-# Specify aliases to be created/removed from user's bashrc file
-# Command is not required when state is absent
-#user_alias:
-#  - user: example
-#    alias: ll
-#    command: ls -l --color=auto
-#    state: present
+# User/group management inputs.
+user_account_add: []
+user_account_remove: []
+user_group_add: []
+user_group_remove: []
+user_alias: []

@@ -1,0 +1,105 @@
+---
+argument_specs:
+  main:
+    short_description: Manage Linux user and group security policy
+    description:
+      - Configures local user/group management and CIS-aligned account policy defaults.
+    options:
+      user_skip_config:
+        type: bool
+        default: false
+        description: Skip login definition and account-hardening configuration.
+      user_new_password:
+        type: str
+        default: ""
+        no_log: true
+        description: Optional replacement password for ansible_become_pass.
+      user_configure_single_user:
+        type: bool
+        default: false
+        description: Configure rescue/emergency shell handling on systemd hosts.
+      user_max_days:
+        type: int
+        default: 365
+        description: Maximum password age in days.
+      user_min_days:
+        type: int
+        default: 7
+        description: Minimum days between password changes.
+      user_inactive_days:
+        type: int
+        default: 30
+        description: Days after password expiration before an account is disabled.
+      user_warn_age:
+        type: int
+        default: 7
+        description: Password expiration warning age in days.
+      user_umask:
+        type: str
+        default: "027"
+        description: Default user umask.
+      user_shell_timeout:
+        type: int
+        default: 900
+        description: Shell inactivity timeout in seconds.
+      user_fix_existing_accounts:
+        type: bool
+        default: true
+        description: Remediate existing local users where safe and report manual findings.
+      user_encrypt_method:
+        type: str
+        default: YESCRYPT
+        choices:
+          - YESCRYPT
+          - SHA512
+          - SHA256
+          - BCRYPT
+          - DES
+          - MD5
+        description: Password hashing method in login.defs.
+      user_sha_crypt_max_rounds:
+        type: raw
+        default: null
+        description: Optional SHA crypt max rounds.
+      user_bcrypt_min_rounds:
+        type: raw
+        default: null
+        description: Optional BCRYPT min rounds.
+      user_bcrypt_max_rounds:
+        type: raw
+        default: null
+        description: Optional BCRYPT max rounds.
+      user_yescrypt_cost_factor:
+        type: raw
+        default: null
+        description: Optional YESCRYPT cost factor.
+      root_password:
+        type: str
+        default: ""
+        no_log: true
+        description: Optional root password hash.
+      user_account_add:
+        type: list
+        elements: dict
+        default: []
+        description: Users to create or update.
+      user_account_remove:
+        type: list
+        elements: str
+        default: []
+        description: User names to remove.
+      user_group_add:
+        type: list
+        elements: dict
+        default: []
+        description: Groups to create or update.
+      user_group_remove:
+        type: list
+        elements: str
+        default: []
+        description: Group names to remove.
+      user_alias:
+        type: list
+        elements: dict
+        default: []
+        description: Bash aliases to manage in user bashrc files.
