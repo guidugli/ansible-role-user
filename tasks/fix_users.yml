@@ -16,6 +16,7 @@
 - name: Remediate user password max days
   ansible.builtin.command: "chage --maxdays {{ user_max_days }} {{ item }}"
   loop: "{{ user_password_max_days.stdout_lines | default([]) }}"
+  changed_when: true
   when: user_fix_existing_accounts | bool
   tags:
     - user
@@ -38,6 +39,7 @@
 - name: Remediate user password min days
   ansible.builtin.command: "chage --mindays {{ user_min_days }} {{ item }}"
   loop: "{{ user_password_min_days.stdout_lines | default([]) }}"
+  changed_when: true
   when: user_fix_existing_accounts | bool
   tags:
     - user
@@ -60,6 +62,7 @@
 - name: Remediate user password warning days
   ansible.builtin.command: "chage --warndays {{ user_warn_age }} {{ item }}"
   loop: "{{ user_password_warn_days.stdout_lines | default([]) }}"
+  changed_when: true
   when: user_fix_existing_accounts | bool
   tags:
     - user
@@ -82,6 +85,7 @@
 - name: Remediate inactive setting for users
   ansible.builtin.command: "chage --inactive {{ user_inactive_days }} {{ item }}"
   loop: "{{ user_inactive_users.stdout_lines | default([]) }}"
+  changed_when: true
   when: user_fix_existing_accounts | bool
   tags:
     - user
@@ -136,7 +140,7 @@
     set -o pipefail
     uid_min=$(awk '/^\s*UID_MIN/{print $2}' /etc/login.defs)
     awk -v pat="^({{ user_valid_shells.stdout }})$" -v uid_min="$uid_min" -F: \
-      '($1!~/^(root|halt|sync|shutdown|nfsnobody)$/ && ($3 < uid_min || $3 == 65534) && $7 ~ pat) {print $1}' /etc/passwd
+    '($1!~/^(root|halt|sync|shutdown|nfsnobody)$/ && ($3 < uid_min || $3 == 65534) && $7 ~ pat) {print $1}' /etc/passwd
   args:
     executable: /bin/bash
   register: user_system_accounts_with_shell
@@ -212,6 +216,7 @@
 
 - name: Ensure root account primary GID is 0
   ansible.builtin.command: "usermod -g 0 root"
+  changed_when: true
   when: user_root_primary_gid.stdout | int != 0
   tags:
     - user

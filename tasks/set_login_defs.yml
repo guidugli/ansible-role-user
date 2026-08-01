@@ -63,6 +63,7 @@
 
 - name: Configure default inactive password lock period
   ansible.builtin.command: "useradd -D -f {{ user_inactive_days }}"
+  changed_when: true
   when: "'INACTIVE=' ~ user_inactive_days not in user_useradd_defaults.stdout"
   tags:
     - user
